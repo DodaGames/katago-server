@@ -1,0 +1,72 @@
+import subprocess
+import threading
+import queue
+import json
+
+from config import katago_executable_path
+
+
+class KataGoWorker:
+    def __init__(self, model_path, config_path, human_model_path=None):
+        cmd = [
+            katago_executable_path,
+            "analysis",
+            "-model",
+            model_path,
+            "-config",
+            config_path,
+        ]
+        if human_model_path:
+            cmd.extend(["-human-model", human_model_path])
+
+        self.process = subprocess.Popen(
+            cmd,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1,  # line-buffered
+        )
+
+        # 요청 큐 (이 프로세스는 직렬 처리만 가능)
+        self.task_queue = queue.Queue()
+
+        # worker thread
+        threading.Thread(target=self._worker_loop, daemon=True).start()
+
+        # stderr 로깅 thread
+        threading.Thread(target=self._log_stderr, daemon=True).start()
+
+    def _log_stderr(self):
+        for line in iter(self.process.stderr.readline, ""):
+            print("[KataGo Log]", line.strip())
+
+    def _worker_loop(self):
+        while True:
+            query_str, future = self.task_queue.get()
+            try:
+                self.process.stdin.write(query_str)
+                self.process.stdin.flush()
+
+                result_line = self.process.stdout.readline()
+                # 빈 줄이 들어오는 경우를 방어
+                while result_line.strip() == "":
+                    result_line = self.process.stdout.readline()
+
+                result = json.loads(result_line)
+                future.put(result)
+            except Exception as e:
+                future.put({"error": str(e)})
+            finally:
+                self.task_queue.task_done()
+
+    def analyze(self, payload: dict, timeout: float = 10.0):
+        """payload를 분석하고 결과를 반환 (timeout 초과 시 예외 발생)"""
+        query_str = json.dumps(payload) + "\n"
+        future = queue.Queue(maxsize=1)
+        self.task_queue.put((query_str, future))
+
+        try:
+            return future.get(timeout=timeout)
+        except queue.Empty:
+            return {"error": "KataGo response timeout"}
