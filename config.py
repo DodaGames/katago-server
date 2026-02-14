@@ -1,3 +1,18 @@
+import os
+import sys
+from dotenv import load_dotenv
+
+# .env 파일 로드
+load_dotenv()
+
+def get_env_required(key):
+    value = os.getenv(key)
+    if not value:
+        print(f"[Error] Environment variable '{key}' is required but not set.")
+        sys.exit(1)
+    return value
+
+# 전체 모델 목록 (참고용)
 analysis_models = {
     "level1": "kata1-b6c96-s1248000-d550347", # rating 483, (준호)
     "level2": "kata1-b6c96-s938496-d1208807", # rating 800, 막 같다 붙이는 애 not bad (준호2)
@@ -15,15 +30,35 @@ analysis_models = {
 }
 
 # 모델 경로 및 설정 파일
-katago_executable_path = "/opt/homebrew/bin/katago"
+# 모델 경로 및 설정 파일
+katago_executable_path = get_env_required("KATAGO_EXECUTABLE_PATH")
 
-base_model_path = "/Users/my_home/Documents/project/baduk-master/AI-test-server/models/"
-analysis_model_path = base_model_path + analysis_models["level2"] + ".txt.gz"
+# 서빙할 모델 목록
+SERVING_MODELS = {
+    "level2": "kata1-b6c96-s938496-d1208807",
+    "level3": "kata1-b6c96-s1995008-d1329786",
+}
+
+base_model_path = get_env_required("BASE_MODEL_PATH")
 human_model_path = base_model_path + "b18c384nbt-humanv0.bin.gz"
-config_path = "/Users/my_home/Documents/project/baduk-master/AI-test-server/configs/analysis_example.cfg"
 
-# 워커 개수 설정
-NUM_ANALYSIS_WORKERS = 2  # katago_analysis 프로세스 개수
-NUM_HUMAN_WORKERS = 2  # katago_human 프로세스 개수
+# 설정 파일 경로 (환경변수 'KATAGO_CONFIG_PATH' - 필수)
+# .env 파일에서 로드되거나 시스템 환경변수로 설정되어 있어야 함
+env_config_path = get_env_required("KATAGO_CONFIG_PATH")
+
+if not env_config_path:
+    print("[Error] KATAGO_CONFIG_PATH is not set in .env or environment variables.")
+    sys.exit(1)
+
+# 상대 경로인 경우 절대 경로로 변환
+if not os.path.isabs(env_config_path):
+    env_config_path = os.path.abspath(env_config_path)
+
+config_path = env_config_path
+print(f"[config.py] Using config: {config_path}")
+
+# 워커 설정
+NUM_WORKERS_PER_MODEL = 1  # 모델별 프로세스 개수 (메모리 절약을 위해 1로 설정)
+NUM_HUMAN_WORKERS = 1      # Human 프로세스 개수
 
 

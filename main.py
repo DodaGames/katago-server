@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
@@ -16,9 +16,12 @@ app.add_middleware(
 )
 
 
-@app.post("/analyze")
-def analyze(payload: dict):
-    worker = get_analysis_worker()
+@app.post("/analyze/{model_id}")
+def analyze(model_id: str, payload: dict):
+    worker = get_analysis_worker(model_id)
+    if not worker:
+        raise HTTPException(status_code=400, detail=f"Model '{model_id}' not found.")
+    
     result = worker.analyze(payload)
     return {"success": True, "result": result}
 
