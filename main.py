@@ -1,11 +1,40 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
 
-from pool import get_analysis_worker, get_human_worker
+from pool import get_analysis_worker
 
 app = FastAPI()
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": exc.detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    error_msg = ", ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "error": error_msg},
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"success": False, "error": str(exc)},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,15 +50,18 @@ def analyze(model_id: str, payload: dict):
     worker = get_analysis_worker(model_id)
     if not worker:
         raise HTTPException(status_code=400, detail=f"Model '{model_id}' not found.")
-    
-    result = worker.analyze(payload)
-    return {"success": True, "result": result}
 
-
-@app.post("/humanplay")
-def human_play(payload: dict):
-    worker = get_human_worker()
     result = worker.analyze(payload)
+
+    # 에러 여부 확인 및 400 Bad Request 응답 처리
+    if isinstance(result, dict) and "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    if isinstance(result, list):
+        for item in result:
+            if isinstance(item, dict) and "error" in item:
+                raise HTTPException(status_code=400, detail=item["error"])
+
     return {"success": True, "result": result}
 
 
