@@ -8,15 +8,20 @@ from utils.payload_analyzer import get_expected_response_count
 
 
 class KataGoWorker:
-    def __init__(self, model_path, config_path):
+    def __init__(
+        self, main_model_path, config_path, is_human=False, human_model_path=None
+    ):
         cmd = [
             katago_executable_path,
             "analysis",
             "-model",
-            model_path,
+            main_model_path,
             "-config",
             config_path,
         ]
+
+        if is_human and human_model_path:
+            cmd.extend(["-human-model", human_model_path])
 
         self.process = subprocess.Popen(
             cmd,
@@ -65,11 +70,11 @@ class KataGoWorker:
                 future.put(results)
 
             except Exception as e:
-                future.put({"error": f"Bad Request: {str(e)}"})
+                future.put({"error": f"Internal process error: {str(e)}"})
             finally:
                 self.task_queue.task_done()
 
-    def analyze(self, payload: dict, timeout: float = 10.0):
+    def analyze(self, payload: dict, timeout: float = 100.0):
         """payload를 분석하고 결과를 반환 (timeout 초과 시 예외 발생)"""
         expected_lines = get_expected_response_count(payload)
 

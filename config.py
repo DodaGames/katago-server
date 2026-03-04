@@ -36,9 +36,17 @@ katago_executable_path = get_env_required("KATAGO_EXECUTABLE_PATH")
 
 # 서빙할 모델 목록
 SERVING_MODELS = {
-    "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
+    # "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
     # "level3": "kata1-b6c96-s1995008-d1329786.txt.gz",
-    "best": "kata1-b28c512nbt-s12192929536-d5655876072.bin.gz",
+    "best": {
+        "is_human": False,
+        "main_model": "kata1-b10c128-s1141046784-d204142634.txt.gz",
+    },
+    "human": {
+        "is_human": True,
+        "main_model": "kata1-b10c128-s1141046784-d204142634.txt.gz",
+        "human_model": "b18c384nbt-humanv0.bin.gz",
+    },
 }
 
 base_model_path = get_env_required("BASE_MODEL_PATH")
