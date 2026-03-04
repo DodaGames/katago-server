@@ -53,14 +53,23 @@ def analyze(model_id: str, payload: dict):
 
     result = worker.analyze(payload)
 
-    # 에러 여부 확인 및 400 Bad Request 응답 처리
+    def handle_error(err_msg: str):
+        err_lower = err_msg.lower()
+        if "timeout" in err_lower:
+            raise HTTPException(status_code=504, detail=err_msg)
+        elif "internal process error" in err_lower:
+            raise HTTPException(status_code=500, detail=err_msg)
+        else:
+            raise HTTPException(status_code=400, detail=err_msg)
+
+    # 에러 여부 확인 및 상태 코드 응답 처리
     if isinstance(result, dict) and "error" in result:
-        raise HTTPException(status_code=400, detail=result["error"])
+        handle_error(result["error"])
 
     if isinstance(result, list):
         for item in result:
             if isinstance(item, dict) and "error" in item:
-                raise HTTPException(status_code=400, detail=item["error"])
+                handle_error(item["error"])
 
     return {"success": True, "result": result}
 
