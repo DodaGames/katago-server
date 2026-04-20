@@ -4,10 +4,39 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 
 import uvicorn
+import time
+import logging
 
 from pool import get_analysis_worker
 
 app = FastAPI()
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("uvicorn.error")
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    start_time = time.time()
+
+    # 요청 시점 로그 추가
+    logger.info(f'Request: {request.method} "{request.url.path}"')
+
+    response = await call_next(request)
+
+    process_time = time.time() - start_time
+    formatted_process_time = "{:.4f}".format(process_time)
+
+    # 클라이언트 정보 가져오기
+    client_host = request.client.host if request.client else "unknown"
+
+    # 기본 uvicorn 포맷과 유사하게 통합 로그 출력 (시간 포함)
+    logger.info(
+        f'Response: {client_host} - "{request.method} {request.url.path}" {response.status_code} - {formatted_process_time}s'
+    )
+
+    return response
 
 
 @app.exception_handler(HTTPException)
@@ -80,4 +109,4 @@ def health_check():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, access_log=False)
