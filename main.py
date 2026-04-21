@@ -75,12 +75,12 @@ app.add_middleware(
 
 
 @app.post("/analyze/{model_id}")
-def analyze(model_id: str, payload: dict):
+async def analyze(model_id: str, payload: dict):
     worker = get_analysis_worker(model_id)
     if not worker:
         raise HTTPException(status_code=400, detail=f"Model '{model_id}' not found.")
 
-    result = worker.analyze(payload)
+    result = await worker.analyze(payload)
 
     def handle_error(err_msg: str):
         err_lower = err_msg.lower()
