@@ -36,9 +36,10 @@ katago_executable_path = get_env_required("KATAGO_EXECUTABLE_PATH")
 
 # 서빙할 모델 목록
 SERVING_MODELS = {
-    "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
+    # "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
     "level3": "kata1-b6c96-s1995008-d1329786.txt.gz",
-    # "level6": "kata1-b6c96-s6127360-d1754797.txt.gz",  # rating 1697,  가닥 없음 (건호)
+    "level6": "kata1-b6c96-s6127360-d1754797.txt.gz",  # rating 1697,  가닥 없음 (건호)
+    "level13": "kata1-b6c96-s48921344-d7092247.txt.gz",  # rating 8087, 최고수 표본 (무야호)
     "best": {
         "is_human": False,
         "main_model": "kata1-b10c128-s1141046784-d204142634.txt.gz",
