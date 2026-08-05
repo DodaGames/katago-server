@@ -7,7 +7,7 @@ import uvicorn
 import time
 import logging
 
-from pool import get_analysis_worker
+from pool import get_analysis_worker, get_pool_stats
 
 app = FastAPI()
 
@@ -106,6 +106,12 @@ async def analyze(model_id: str, payload: dict):
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/status")
+def status_check():
+    """모델별 KataGo 워커의 큐 depth 및 대기 중인 요청 수를 반환합니다."""
+    return {"success": True, "workers": get_pool_stats()}
 
 
 if __name__ == "__main__":

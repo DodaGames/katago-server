@@ -116,3 +116,14 @@ class KataGoWorker:
                 if internal_id in self.futures:
                     del self.futures[internal_id]
             return {"error": "KataGo response timeout"}
+
+    def get_stats(self) -> dict:
+        """모니터링용 큐 depth 및 대기 중인 요청 수 스냅샷"""
+        with self.futures_lock:
+            pending_requests = len(self.futures)
+
+        return {
+            "queue_size": self.write_queue.qsize(),
+            "pending_requests": pending_requests,
+            "process_alive": self.process.poll() is None,
+        }

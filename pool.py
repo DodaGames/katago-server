@@ -70,3 +70,11 @@ def get_analysis_worker(model_id: str):
         worker = workers[idx]
         analysis_rr_indices[model_id] = (idx + 1) % len(workers)
         return worker
+
+
+def get_pool_stats() -> dict:
+    """모델별 워커들의 큐 depth / 대기 요청 수 스냅샷을 반환합니다."""
+    return {
+        model_id: [worker.get_stats() for worker in workers]
+        for model_id, workers in analysis_worker_map.items()
+    }
