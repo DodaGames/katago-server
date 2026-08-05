@@ -16,10 +16,10 @@ def get_env_required(key):
 
 # 전체 모델 목록 (참고용)
 analysis_models = {
-    "level1": "kata1-b6c96-s1248000-d550347.txt.gz",  # rating 483, (준호)
-    "level2": "kata1-b6c96-s938496-d1208807.txt.gz",  # rating 800, 막 같다 붙이는 애 not bad (준호2)
-    "level3": "kata1-b6c96-s1995008-d1329786.txt.gz",  # rating 1067, 막 같다 붙이는 애 (2보단 맥락 있게 둠) not bad (초보 표본) (용호)
-    "level4": "kata1-b6c96-s4136960-d1510003.txt.gz",  # rating 1524, 대기 (3이랑 비슷) (용호2)
+    "level1": "kata1-b6c96-s1248000-d550347.txt.gz",  # rating 482, (유치원 준호)
+    "level2": "kata1-b6c96-s938496-d1208807.txt.gz",  # rating 803, 막 같다 붙이는 애 not bad (준호)
+    "level3": "kata1-b6c96-s1995008-d1329786.txt.gz",  # rating 1069, 막 같다 붙이는 애 (2보단 맥락 있게 둠) not bad (초보 표본) (용호)
+    "level4": "kata1-b6c96-s4136960-d1510003.txt.gz",  # rating 1528, 대기 (3이랑 비슷) (용호2)
     "level5": "kata1-b6c96-s5214720-d1690538.txt.gz",  # rating 1599,  (재호)
     "level6": "kata1-b6c96-s6127360-d1754797.txt.gz",  # rating 1697,  가닥 없음 (건호)
     "level7": "kata1-b6c96-s8080640-d1961030.txt.gz",  # rating 1851,  가닥 약간 (무야호)
@@ -36,10 +36,11 @@ katago_executable_path = get_env_required("KATAGO_EXECUTABLE_PATH")
 
 # 서빙할 모델 목록
 SERVING_MODELS = {
-    # "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
+    "level1": "kata1-b6c96-s1248000-d550347.txt.gz",  # rating 483, (유치원 준호)
+    "level2": "kata1-b6c96-s938496-d1208807.txt.gz",
     "level3": "kata1-b6c96-s1995008-d1329786.txt.gz",
-    "level6": "kata1-b6c96-s6127360-d1754797.txt.gz",  # rating 1697,  가닥 없음 (건호)
-    "level13": "kata1-b6c96-s48921344-d7092247.txt.gz",  # rating 8087, 최고수 표본 (무야호)
+    # "level3": "kata1-b6c96-s6127360-d1754797.txt.gz",  # rating 1697,  가닥 없음 (건호)
+    # "level13": "kata1-b6c96-s48921344-d7092247.txt.gz",  # rating 8087, 최고수 표본 (무야호)
     "best": {
         "is_human": False,
         "main_model": "kata1-b10c128-s1141046784-d204142634.txt.gz",
