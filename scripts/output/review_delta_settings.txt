@@ -1,0 +1,18 @@
+Doda 복기 수 평가 Delta 분포 분석용 데이터 추출 설정
+생성 시각: 2026-08-06 13:09:33
+
+모델 ID: best
+모델 파일: kata1-b18c384nbt-s9996604416-d4316597426.bin.gz
+maxVisits: 200 (모든 판 동일 적용)
+rules: korean
+komi: 판별 SGF에 기록된 원래 값 그대로 사용 (요청서의 'komi 0 고정'과 달리, 실제 47/448개 판이 komi=6.5로 기록돼 있어 사용자 확인 후 원래 값 사용으로 결정)
+유효성 게이트 k: 2.5 (|score_before| > empty_count * k → gate_passed=false)
+보드 크기별 설정 차이: 없음 (rules/komi 산출 방식은 모든 보드 크기에 동일 적용, komi 자체는 위와 같이 판별로 다름)
+
+가중치 공식: weight = 1.5 - 0.7*(|winrate_before-50|/50); winrate_before<50이면 추가로 *0.9
+등급 경계(가중 Delta, %): <3 훌륭한 수 / <6 호수 / <10 정수 / <20 아쉬운 수 / <30 악수 / >=30 대악수 (구간은 왼쪽 포함/오른쪽 미포함)
+강등 경계(집 Delta): <8 강등없음 / <12 1단계 / >=12 2단계 (grade_winrate가 '정수' 이상일 때만 발동)
+
+autoFinishTurn: metadata.autoFinishTurn이 설정된 경우, 그 수(move_number) 이상은 분석에서 제외 (move_number < autoFinishTurn까지만 포함)
+대상 데이터: GameRecord.csv 전체 448개 판 (사람 대 사람 2개 판 id=89,90과 13x13 보드 1개 판 id=110 포함, 사용자 확인 완료)
+winrate/scoreLead 부호 처리: 서버 설정(rtx_desktop.cfg) 'reportAnalysisWinratesAs = BLACK' 확인됨 → 원본 값은 항상 흑 기준이며, 착수자가 백이면 winrate는 100-x, scoreLead는 -x로 변환
