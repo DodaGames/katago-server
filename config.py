@@ -43,7 +43,10 @@ SERVING_MODELS = {
     # "level13": "kata1-b6c96-s48921344-d7092247.txt.gz",  # rating 8087, 최고수 표본 (무야호)
     "best": {
         "is_human": False,
-        "main_model": "kata1-b10c128-s1141046784-d204142634.txt.gz",
+        "main_model": "kata1-b18c384nbt-s9996604416-d4316597426.bin.gz",  # elo 13623.4, 복기(대기형 UX)의 동시접속 지연을 고려해 b28c512nbt 대신 채택
+        # 복기: maxVisits ~100 권장 (동시 16명 p50 9.8s/최악 14.9s)
+        # 자동종료/결과판정: 단발 쿼리라 maxVisits ~500 권장 (동시성 영향 작음)
+        # 근거: scripts/bench_results/sweep_v2_coldcache.csv, scripts/bench_results/concurrency.csv
     },
     # "human": {
     #     "is_human": True,
