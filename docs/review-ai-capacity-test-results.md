@@ -1,6 +1,6 @@
 # 복기 AI 용량 산정 — 테스트 결과 보고서
 
-`temp/review-ai-capacity-test-request.md` 요청서에 대한 실측 결과. RTX 5070 Ti(16GB) 1대,
+`docs/review-ai-capacity-test-request.md` 요청서에 대한 실측 결과. RTX 5070 Ti(16GB) 1대,
 `configs/rtx_desktop.cfg`(numAnalysisThreads=32, nnMaxBatchSize=256) 기준.
 
 **한 줄 요약**: 복기 자체의 GPU 처리량은 사전 추정보다 훨씬 여유롭다. 진짜 병목은
