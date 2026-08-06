@@ -44,9 +44,19 @@ SERVING_MODELS = {
     "best": {
         "is_human": False,
         "main_model": "kata1-b18c384nbt-s9996604416-d4316597426.bin.gz",  # elo 13623.4, 복기(대기형 UX)의 동시접속 지연을 고려해 b28c512nbt 대신 채택
-        # 복기: maxVisits ~100 권장 (동시 16명 p50 9.8s/최악 14.9s)
-        # 자동종료/결과판정: 단발 쿼리라 maxVisits ~500 권장 (동시성 영향 작음)
-        # 근거: scripts/bench_results/sweep_v2_coldcache.csv, scripts/bench_results/concurrency.csv
+        # 복기 전용 프로세스. maxVisits 기본 200 / 포화 시 100으로 강등 권장(둘 다 테스트 C 통과).
+        # 판정/자동종료(best_judge)와 프로세스를 분리해 같은 KataGo 분석엔진 큐를 공유하지
+        # 않도록 함 — 공유 시 복기 N=1만 돌아도 판정 SLO가 깨짐(테스트 B).
+        # 근거: docs/review-ai-capacity-test-results.md 테스트 A/B/C
+    },
+    "best_judge": {
+        "is_human": False,
+        "main_model": "kata1-b18c384nbt-s9996604416-d4316597426.bin.gz",  # best와 동일 모델(판정 결과 일관성 유지), 프로세스만 분리
+        # 자동종료 수순 / 결과판정 전용 프로세스. maxVisits ~100 권장.
+        # v100에서도 winrate MAE 0.00095~0.00131, 집 MAE 1집 미만으로 정확도 손실이 미미함
+        # (기존 500에서 하향). 단발 쿼리라 동시성 영향은 작지만, 복기와 큐를 공유하면
+        # 복기 부하 뒤로 밀려 판정 SLO(p95<=2s)가 깨지므로 반드시 별도 프로세스여야 함.
+        # 근거: docs/review-ai-capacity-test-results.md 테스트 B/E
     },
     # "human": {
     #     "is_human": True,
@@ -75,3 +85,11 @@ print(f"[config.py] Using config: {config_path}")
 NUM_WORKERS_PER_MODEL = int(
     os.getenv("NUM_WORKERS_PER_MODEL", "1")
 )  # 모델별 프로세스 개수 (메모리 절약을 위해 1로 설정, 환경에 따라 변경 가능)
+
+# model_id별 동시 처리 요청 수 하드 상한. 초과 요청은 FIFO로 대기(우선순위 큐 역할).
+# "best"(복기)만 제한: concurrency.csv 실측상 N=4에서 처리량이 정점을 찍고 그 이상은
+# 총처리량 이득 없이 개인 대기시간만 늘어남(docs/review-ai-capacity-test-results.md §1).
+# 착수(level*)/판정(best_judge)은 단발 경량 쿼리라 별도 상한이 필요 없다.
+MAX_CONCURRENT_REQUESTS = {
+    "best": int(os.getenv("REVIEW_MAX_CONCURRENT_REQUESTS", "4")),
+}

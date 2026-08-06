@@ -7,7 +7,12 @@ import uvicorn
 import time
 import logging
 
-from pool import get_analysis_worker, get_pool_stats
+from pool import (
+    get_analysis_worker,
+    get_pool_stats,
+    acquire_concurrency_slot,
+    record_request_latency,
+)
 
 app = FastAPI()
 
@@ -80,7 +85,11 @@ async def analyze(model_id: str, payload: dict):
     if not worker:
         raise HTTPException(status_code=400, detail=f"Model '{model_id}' not found.")
 
-    result = await worker.analyze(payload)
+    # 동시성 상한이 설정된 모델(예: 복기)은 FIFO로 대기 후 슬롯을 얻는다.
+    request_start = time.time()
+    async with acquire_concurrency_slot(model_id):
+        result = await worker.analyze(payload)
+    record_request_latency(model_id, time.time() - request_start)
 
     def handle_error(err_msg: str):
         err_lower = err_msg.lower()
@@ -110,8 +119,9 @@ def health_check():
 
 @app.get("/status")
 def status_check():
-    """모델별 KataGo 워커의 큐 depth 및 대기 중인 요청 수를 반환합니다."""
-    return {"success": True, "workers": get_pool_stats()}
+    """운영 지표 대시보드용 스냅샷: 모델별 큐 depth/대기 요청 수/요청 지연시간
+    (p50/p95)/동시성 게이트 상태(대기 중 건수·대기시간)와 GPU 사용률을 반환합니다."""
+    return {"success": True, **get_pool_stats()}
 
 
 if __name__ == "__main__":

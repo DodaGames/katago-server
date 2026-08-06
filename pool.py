@@ -1,13 +1,61 @@
+import asyncio
 import os
 import sys
 import threading
+import time
+from contextlib import asynccontextmanager, nullcontext
+
 from katago_worker import KataGoWorker
+from metrics import LatencyTracker, get_gpu_stats
 from config import (
     SERVING_MODELS,
     base_model_path,
     config_path,
     NUM_WORKERS_PER_MODEL,
+    MAX_CONCURRENT_REQUESTS,
 )
+
+class ConcurrencyGate:
+    """model_id별 동시 처리 요청 수를 상한(N)으로 강제하는 FIFO 대기 게이트.
+
+    asyncio.Semaphore의 내부 대기열이 FIFO라, 별도 우선순위 큐 구현 없이도
+    상한을 넘는 요청은 먼저 온 순서대로 슬롯을 얻는다(복기끼리의 큐잉).
+    """
+
+    def __init__(self, limit: int):
+        self.limit = limit
+        self._semaphore = asyncio.Semaphore(limit)
+        self._waiting = 0
+        self._in_flight = 0
+        self._lock = threading.Lock()
+        self.wait_latency = LatencyTracker()
+
+    @asynccontextmanager
+    async def acquire(self):
+        with self._lock:
+            self._waiting += 1
+        t0 = time.perf_counter()
+        async with self._semaphore:
+            with self._lock:
+                self._waiting -= 1
+                self._in_flight += 1
+            self.wait_latency.record(time.perf_counter() - t0)
+            try:
+                yield
+            finally:
+                with self._lock:
+                    self._in_flight -= 1
+
+    def stats(self) -> dict:
+        with self._lock:
+            waiting, in_flight = self._waiting, self._in_flight
+        return {
+            "limit": self.limit,
+            "in_flight": in_flight,
+            "waiting": waiting,
+            "wait_latency": self.wait_latency.percentiles(),
+        }
+
 
 # 모델별 워커 풀 초기화
 # 구조: { "level2": [worker1, worker2], "level3": [worker1, worker2] }
@@ -56,6 +104,14 @@ for model_id, model_info in SERVING_MODELS.items():
 
 _pool_lock = threading.Lock()
 
+# model_id별 동시성 게이트(설정된 모델만) + 요청 지연시간 트래커(전 모델)
+_concurrency_gates = {
+    model_id: ConcurrencyGate(limit)
+    for model_id, limit in MAX_CONCURRENT_REQUESTS.items()
+    if limit and model_id in analysis_worker_map
+}
+_request_latency = {model_id: LatencyTracker() for model_id in analysis_worker_map}
+
 
 def get_analysis_worker(model_id: str):
     """
@@ -72,9 +128,29 @@ def get_analysis_worker(model_id: str):
         return worker
 
 
+def acquire_concurrency_slot(model_id: str):
+    """model_id에 동시성 상한이 설정돼 있으면 FIFO 게이트를, 아니면 no-op 컨텍스트를 반환."""
+    gate = _concurrency_gates.get(model_id)
+    return gate.acquire() if gate else nullcontext()
+
+
+def record_request_latency(model_id: str, seconds: float):
+    tracker = _request_latency.get(model_id)
+    if tracker:
+        tracker.record(seconds)
+
+
 def get_pool_stats() -> dict:
-    """모델별 워커들의 큐 depth / 대기 요청 수 스냅샷을 반환합니다."""
-    return {
-        model_id: [worker.get_stats() for worker in workers]
-        for model_id, workers in analysis_worker_map.items()
-    }
+    """모델별 워커 큐 depth, 요청 지연시간(p50/p95), 동시성 게이트 상태, GPU 사용률 스냅샷."""
+    stats = {}
+    for model_id, workers in analysis_worker_map.items():
+        entry = {
+            "workers": [worker.get_stats() for worker in workers],
+            "latency": _request_latency[model_id].percentiles(),
+        }
+        gate = _concurrency_gates.get(model_id)
+        if gate:
+            entry["concurrency_gate"] = gate.stats()
+        stats[model_id] = entry
+
+    return {"models": stats, "gpu": get_gpu_stats()}
