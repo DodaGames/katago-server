@@ -115,7 +115,9 @@ async def run_one_model(model_cfg, games, ground_truth, args, csv_writer):
 
         try:
             t0 = time.perf_counter()
+            combo_start_ts = time.time()
             single_times, batch_times, scene_counts = await eval_latency(worker, games, max_visits, args)
+            latency_end_ts = time.time()
             wr_errs, score_errs = await eval_accuracy(worker, games, ground_truth, max_visits, args)
             wall = time.perf_counter() - t0
 
@@ -123,6 +125,9 @@ async def run_one_model(model_cfg, games, ground_truth, args, csv_writer):
                 "model": name,
                 "max_visits": max_visits,
                 "n_games": len(games),
+                "combo_start_ts": round(combo_start_ts, 3),
+                "latency_end_ts": round(latency_end_ts, 3),
+                "visits_per_sec": round(max_visits / (sum(batch_times) / sum(scene_counts)), 2),
                 "winrate_mae": round(statistics.mean(wr_errs), 5) if wr_errs else None,
                 "winrate_p95_err": round(sorted(wr_errs)[int(len(wr_errs) * 0.95)], 5) if wr_errs else None,
                 "score_mae": round(statistics.mean(score_errs), 4) if score_errs else None,
@@ -155,7 +160,8 @@ async def main_async(args):
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
-        "model", "max_visits", "n_games", "winrate_mae", "winrate_p95_err", "score_mae",
+        "model", "max_visits", "n_games", "combo_start_ts", "latency_end_ts", "visits_per_sec",
+        "winrate_mae", "winrate_p95_err", "score_mae",
         "single_latency_p50_sec", "single_latency_p95_sec",
         "batch_latency_p50_sec", "batch_sec_per_scene", "combo_wall_sec",
     ]

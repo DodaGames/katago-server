@@ -1,0 +1,6 @@
+concurrency,review_visits,next_move_visits,judge_visits,measure_wall_sec,next_move_p50,next_move_p95,next_move_p99,next_move_max,next_move_slo_1s_met,judge_p50,judge_p95,judge_p99,judge_max,judge_slo_2s_met
+0,100,100,500,17.09,0.057,0.067,0.074,0.074,True,0.352,0.441,0.472,0.472,True
+1,100,100,500,73.48,0.084,0.1,0.105,0.105,True,1.237,2.684,2.809,2.809,False
+2,100,100,500,87.36,0.086,0.097,0.1,0.1,True,1.255,3.682,4.626,4.626,False
+4,100,100,500,97.56,0.086,0.098,0.109,0.109,True,1.267,5.748,7.817,7.817,False
+8,100,100,500,113.83,0.084,0.093,0.099,0.099,True,1.455,8.904,11.214,11.214,False

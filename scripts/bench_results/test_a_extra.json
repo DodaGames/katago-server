@@ -1,0 +1,38 @@
+{
+  "model": "b18c384nbt",
+  "max_visits": 200,
+  "game_id": "110",
+  "game_num_moves": 126,
+  "thread_tuning": [
+    {
+      "variant": "baseline (numAnalysisThreads=32, nnMaxBatchSize=256)",
+      "config_path": "configs/rtx_desktop.cfg",
+      "max_visits": 200,
+      "n_scenes": 254,
+      "batch_latency_sec": 5.313,
+      "batch_sec_per_scene": 0.02092
+    },
+    {
+      "variant": "tuned (numAnalysisThreads=48, nnMaxBatchSize=384)",
+      "config_path": "configs/rtx_desktop_tuned.cfg",
+      "max_visits": 200,
+      "n_scenes": 254,
+      "batch_latency_sec": 5.486,
+      "batch_sec_per_scene": 0.0216
+    }
+  ],
+  "batch_efficiency": [
+    {
+      "mode": "individual (1 scene per request, sequential)",
+      "n_scenes": 127,
+      "total_sec": 14.076,
+      "sec_per_scene": 0.11083
+    },
+    {
+      "mode": "batched (all scenes in 1 analyzeTurns request)",
+      "n_scenes": 127,
+      "total_sec": 4.689,
+      "sec_per_scene": 0.03692
+    }
+  ]
+}
