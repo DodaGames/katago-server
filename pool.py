@@ -7,12 +7,14 @@ from contextlib import asynccontextmanager, nullcontext
 
 from katago_worker import KataGoWorker
 from metrics import LatencyTracker, get_gpu_stats
+from endgame.predictor import EndgamePredictor
 from config import (
     SERVING_MODELS,
     base_model_path,
     config_path,
     NUM_WORKERS_PER_MODEL,
     MAX_CONCURRENT_REQUESTS,
+    ENDGAME_MODEL_DIR,
 )
 
 class ConcurrencyGate:
@@ -111,6 +113,20 @@ _concurrency_gates = {
     if limit and model_id in analysis_worker_map
 }
 _request_latency = {model_id: LatencyTracker() for model_id in analysis_worker_map}
+
+# 종국 판정(XGBoost) 모델. KataGo 워커와 달리 가볍고 서브프로세스가 아니라
+# 프로세스 시작 시 1회 로드해두는 in-process 싱글턴이다. 아티팩트가 아직
+# 준비되지 않은 환경(예: 로컬 개발 초기)에서도 서버 자체는 뜨도록 실패를
+# 흡수하고 None으로 둔다 - /check-end-game 호출 시점에 에러를 낸다.
+try:
+    _endgame_predictor = EndgamePredictor(ENDGAME_MODEL_DIR)
+except FileNotFoundError as e:
+    print(f"[WARN] Endgame predictor를 로드하지 못했습니다: {e}")
+    _endgame_predictor = None
+
+
+def get_endgame_predictor():
+    return _endgame_predictor
 
 
 def get_analysis_worker(model_id: str):

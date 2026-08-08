@@ -93,3 +93,10 @@ NUM_WORKERS_PER_MODEL = int(
 MAX_CONCURRENT_REQUESTS = {
     "best": int(os.getenv("REVIEW_MAX_CONCURRENT_REQUESTS", "4")),
 }
+
+# 종국 판정(XGBoost) 모델 아티팩트 디렉터리. models/endgame/current.json이
+# 현재 서빙 버전을 가리킨다 (endgame/train/train.py --promote로 갱신).
+ENDGAME_MODEL_DIR = os.getenv(
+    "ENDGAME_MODEL_DIR",
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "endgame"),
+)

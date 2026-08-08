@@ -12,7 +12,9 @@ from pool import (
     get_pool_stats,
     acquire_concurrency_slot,
     record_request_latency,
+    get_endgame_predictor,
 )
+from endgame.schemas import KatagoAnalysisResult
 
 app = FastAPI()
 
@@ -110,6 +112,36 @@ async def analyze(model_id: str, payload: dict):
                 handle_error(item["error"])
 
     return {"success": True, "result": result}
+
+
+@app.post("/check-end-game")
+async def check_end_game(analysis_result: KatagoAnalysisResult):
+    """이미 확보된 KataGo 분석 결과(best_judge 등으로 직접 분석한 한 턴 분량) 하나를 받아
+    종국 판정(XGBoost) 모델을 돌려 '종료 추천' 여부를 {"success": True, "result": boolean} 형식으로 반환한다.
+
+    이 서버가 KataGo 분석을 직접 수행하지 않는다 - 호출자가 이미 /analyze로 얻은
+    rootInfo/ownership/ownershipStdev/policy/turnNumber를 그대로 전달한다.
+    요청 스키마는 KatagoAnalysisResult DTO(endgame/schemas.py)로 검증되며,
+    필드 누락/타입 불일치는 FastAPI가 422로 응답한다.
+    """
+    predictor = get_endgame_predictor()
+    if not predictor:
+        raise HTTPException(status_code=500, detail="종국 판정 모델이 로드되지 않았습니다.")
+
+    try:
+        is_endgame = (
+            predictor.predict_proba(
+                analysis_result.model_dump(), analysis_result.turnNumber
+            )
+            >= predictor.threshold
+        )
+    except Exception as e:
+        # DTO 검증은 통과했지만 피처 계산 단계에서 실패한 경우(예: 극단적인 입력값) -
+        # 종료를 잘못 추천하는 것보다 안전한 기본값(False)으로 응답한다.
+        logger.error(f"Endgame prediction failed: {e}")
+        is_endgame = False
+
+    return {"success": True, "result": is_endgame}
 
 
 @app.get("/health")
