@@ -32,8 +32,8 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from kg_bench_lib import load_positions, build_payload, time_query, extract_root_info  # noqa: E402
-from katago_worker import KataGoWorker  # noqa: E402
-from config import SERVING_MODELS, base_model_path, config_path as default_config_path  # noqa: E402
+from analysis.worker import KataGoWorker  # noqa: E402
+from analysis.config import SERVING_MODELS, base_model_path, config_path as default_config_path  # noqa: E402
 
 
 def stratified_sample(games, sample_size, seed):

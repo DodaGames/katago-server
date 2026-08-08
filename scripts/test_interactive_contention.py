@@ -40,8 +40,8 @@ if str(REPO_ROOT) not in sys.path:
 from kg_bench_lib import (  # noqa: E402
     load_positions, build_payload, time_query, full_analyze_turns,
 )
-from katago_worker import KataGoWorker  # noqa: E402
-from config import SERVING_MODELS, analysis_models, base_model_path, config_path as default_config_path  # noqa: E402
+from analysis.worker import KataGoWorker  # noqa: E402
+from analysis.config import SERVING_MODELS, analysis_models, base_model_path, config_path as default_config_path  # noqa: E402
 
 
 def resolve_model_path(name_or_file):

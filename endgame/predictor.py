@@ -1,6 +1,6 @@
 """학습된 종국 판정(XGBoost) 모델을 로드해 확률/판정을 반환하는 서빙 래퍼.
 
-models/endgame/current.json이 가리키는 버전을 프로세스 시작 시 1회 로드한다.
+endgame/models/current.json이 가리키는 버전을 프로세스 시작 시 1회 로드한다.
 모델이 작아(수백 KB) 로드가 밀리초 단위이므로, 새 버전 반영은 KataGo 가중치
 교체와 동일하게 "current.json 갱신 + 프로세스 재시작"으로 충분하다.
 """

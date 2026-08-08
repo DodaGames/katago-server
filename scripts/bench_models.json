@@ -2,25 +2,25 @@
   {
     "name": "b10c128",
     "model_path": "kata1-b10c128-s1141046784-d204142634.txt.gz",
-    "config_path": "configs/rtx_desktop.cfg",
+    "config_path": "analysis/configs/rtx_desktop.cfg",
     "note": "current best, elo 11524.2"
   },
   {
     "name": "b20c256x2",
     "model_path": "kata1-b20c256x2-s5303129600-d1228401921.bin.gz",
-    "config_path": "configs/rtx_desktop.cfg",
+    "config_path": "analysis/configs/rtx_desktop.cfg",
     "note": "elo 12906.7"
   },
   {
     "name": "b18c384nbt",
     "model_path": "kata1-b18c384nbt-s9996604416-d4316597426.bin.gz",
-    "config_path": "configs/rtx_desktop.cfg",
+    "config_path": "analysis/configs/rtx_desktop.cfg",
     "note": "elo 13623.4"
   },
   {
     "name": "b28c512nbt",
     "model_path": "kata1-b28c512nbt-s13255194368-d5935380940.bin.gz",
-    "config_path": "configs/rtx_desktop.cfg",
+    "config_path": "analysis/configs/rtx_desktop.cfg",
     "note": "elo 14107.7, strongest downloaded"
   }
 ]

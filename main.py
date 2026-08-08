@@ -7,14 +7,14 @@ import uvicorn
 import time
 import logging
 
-from pool import (
+from analysis.pool import (
     get_analysis_worker,
     get_pool_stats,
     acquire_concurrency_slot,
     record_request_latency,
-    get_endgame_predictor,
 )
 from endgame.schemas import KatagoAnalysisResult
+from endgame.service import get_endgame_predictor
 
 app = FastAPI()
 

@@ -1,7 +1,7 @@
 """종국 판정(XGBoost) 모델을 학습하고 버전 아티팩트로 저장한다.
 
 기보 단위(GroupShuffleSplit)로 train/test를 나눠 평가하고, 여러 threshold에서의
-precision/recall을 표로 보여준다. --promote를 주면 models/endgame/current.json을
+precision/recall을 표로 보여준다. --promote를 주면 endgame/models/current.json을
 갱신해 새 버전을 서빙 대상으로 승격한다(그렇지 않으면 아티팩트만 저장되고
 기존 current.json은 그대로 유지 - 검증 전 모델이 실수로 서빙되는 걸 방지).
 
@@ -170,7 +170,7 @@ def parse_args():
         "--threshold", type=float, default=None,
         help="promote 시 필수. 생략하면 sweep 표만 보고 종료(아티팩트는 저장됨).",
     )
-    p.add_argument("--model-dir", default=str(REPO_ROOT / "models" / "endgame"))
+    p.add_argument("--model-dir", default=str(REPO_ROOT / "endgame" / "models"))
     p.add_argument("--promote", action="store_true")
     return p.parse_args()
 

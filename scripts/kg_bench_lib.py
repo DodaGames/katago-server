@@ -1,7 +1,7 @@
 """bench_networks.py / generate_ground_truth.py / run_sweep.py가 공유하는 헬퍼.
 
-서버(main.py/pool.py)를 거치지 않고 katago_worker.KataGoWorker를 직접 구동해서
-모델을 하나씩 순차 점유하며 측정하기 위한 공통 코드.
+서버(main.py/analysis/pool.py)를 거치지 않고 analysis.worker.KataGoWorker를 직접
+구동해서 모델을 하나씩 순차 점유하며 측정하기 위한 공통 코드.
 """
 
 import json
@@ -14,8 +14,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from katago_worker import KataGoWorker  # noqa: E402
-from config import base_model_path  # noqa: E402
+from analysis.worker import KataGoWorker  # noqa: E402
+from analysis.config import base_model_path  # noqa: E402
 
 
 def load_manifest(manifest_path, only_names=None):

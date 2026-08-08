@@ -32,7 +32,7 @@ if str(REPO_ROOT) not in sys.path:
 
 from utils.sgf_parser import parse_sgf_game  # noqa: E402
 from utils.go_board import compute_empty_counts_before_each_move  # noqa: E402
-from config import SERVING_MODELS  # noqa: E402
+from analysis.config import SERVING_MODELS  # noqa: E402
 
 csv.field_size_limit(10**7)
 

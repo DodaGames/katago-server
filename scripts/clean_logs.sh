@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 targets=(
   analysis_logs
-  models/gtp_logs
-  models/analysis_logs
+  analysis/models/gtp_logs
+  analysis/models/analysis_logs
 )
 
 for dir in "${targets[@]}"; do

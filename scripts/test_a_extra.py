@@ -2,7 +2,7 @@
 Test A의 "추가 확인" 두 항목을 재는 보조 스크립트 (run_sweep.py로는 재지 않는 것들).
 
 1) numAnalysisThreads / nnMaxBatchSize 튜닝 전후 차이
-   configs/rtx_desktop.cfg(기본) vs configs/rtx_desktop_tuned.cfg
+   analysis/configs/rtx_desktop.cfg(기본) vs analysis/configs/rtx_desktop_tuned.cfg
    (numAnalysisThreads 32->48, nnMaxBatchSize 256->384) 로 같은 모델/visits/게임을
    콜드 상태에서 반복 측정해 batch_sec_per_scene을 비교한다.
 
@@ -44,8 +44,8 @@ async def measure_thread_tuning(model_cfg, game, max_visits, timeout, scenes_mul
     """같은 (model, maxVisits, game)을 기본/튜닝 config로 각각 콜드 측정."""
     rows = []
     for label, config_path in [
-        ("baseline (numAnalysisThreads=32, nnMaxBatchSize=256)", "configs/rtx_desktop.cfg"),
-        ("tuned (numAnalysisThreads=48, nnMaxBatchSize=384)", "configs/rtx_desktop_tuned.cfg"),
+        ("baseline (numAnalysisThreads=32, nnMaxBatchSize=256)", "analysis/configs/rtx_desktop.cfg"),
+        ("tuned (numAnalysisThreads=48, nnMaxBatchSize=384)", "analysis/configs/rtx_desktop_tuned.cfg"),
     ]:
         cfg = dict(model_cfg, config_path=config_path)
         print(f"\n=== [thread-tuning] {label} ===")

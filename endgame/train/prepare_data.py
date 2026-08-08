@@ -2,7 +2,7 @@
 endgame 모델 학습용 analysis-result JSON(턴별 rootInfo/ownership/policy)을 생성한다.
 
 기존에는 별도 NestJS 백엔드(localhost:3000)를 거쳐 분석 결과를 받아왔지만,
-SGF 파싱(utils/sgf_parser)과 KataGo 분석(katago_worker)이 전부 이 repo 안에
+SGF 파싱(utils/sgf_parser)과 KataGo 분석(analysis.worker)이 전부 이 repo 안에
 있으므로 외부 서비스 없이 닫힌 파이프라인으로 데이터를 생성한다.
 
 사용 예:
@@ -22,8 +22,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from katago_worker import KataGoWorker  # noqa: E402
-from config import SERVING_MODELS, base_model_path, config_path as default_config_path  # noqa: E402
+from analysis.worker import KataGoWorker  # noqa: E402
+from analysis.config import SERVING_MODELS, base_model_path, config_path as default_config_path  # noqa: E402
 from utils.sgf_parser import parse_sgf_game  # noqa: E402
 
 DATA_DIR = Path(__file__).resolve().parent / "data"
