@@ -27,8 +27,10 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_ROOT))
 
 from utils.generate_random_moves import generate_random_moves  # noqa: E402
 from kg_bench_lib import (  # noqa: E402
@@ -132,7 +134,7 @@ async def main_async(args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--manifest", default=str(REPO_ROOT / "scripts" / "bench_models.json"))
+    p.add_argument("--manifest", default=str(THIS_DIR / "bench_models.json"))
     p.add_argument("--models", default=None, help="쉼표구분 모델 이름 필터 (미지정시 manifest 전체)")
     p.add_argument("--max-visits", default="50,100,200,300,500", help="쉼표구분 maxVisits 목록")
     p.add_argument("--num-moves", type=int, default=50)
@@ -146,7 +148,7 @@ def parse_args():
                          "웜캐시 정상상태를 보고 싶을 때만 늘릴 것")
     p.add_argument("--timeout", type=float, default=180.0)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_results" / "bench.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_results" / "bench.csv"))
     args = p.parse_args()
     args.max_visits = [int(v) for v in args.max_visits.split(",")]
     return args

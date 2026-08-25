@@ -21,8 +21,10 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_ROOT))
 
 from kg_bench_lib import (  # noqa: E402
     load_manifest, load_positions, start_worker, stop_worker,
@@ -116,14 +118,14 @@ async def main_async(args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--manifest", default=str(REPO_ROOT / "scripts" / "bench_models.json"))
+    p.add_argument("--manifest", default=str(THIS_DIR / "bench_models.json"))
     p.add_argument("--models", default=None)
     p.add_argument("--max-visits", default="100,200")
     p.add_argument("--concurrency", default="1,4,8,16")
-    p.add_argument("--positions", default=str(REPO_ROOT / "scripts" / "bench_data" / "positions.jsonl"))
+    p.add_argument("--positions", default=str(THIS_DIR / "bench_data" / "positions.jsonl"))
     p.add_argument("--timeout", type=float, default=180.0)
     p.add_argument("--seed", type=int, default=7)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_results" / "concurrency.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_results" / "concurrency.csv"))
     args = p.parse_args()
     args.max_visits = [int(v) for v in args.max_visits.split(",")]
     args.concurrency = [int(v) for v in args.concurrency.split(",")]

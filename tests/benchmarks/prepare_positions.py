@@ -18,8 +18,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_ROOT))
 
 from utils.sgf_parser import parse_sgf_game  # noqa: E402
 
@@ -73,11 +75,11 @@ def stratified_sample(games, sample_size, seed):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--csv", default=str(REPO_ROOT / "GameRecord.csv"))
+    p.add_argument("--csv", default=str(REPO_ROOT / "tests" / "data" / "GameRecord.csv"))
     p.add_argument("--sample-size", type=int, default=50)
     p.add_argument("--rules", default="korean")
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_data" / "positions.jsonl"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_data" / "positions.jsonl"))
     args = p.parse_args()
 
     games = load_games(Path(args.csv))

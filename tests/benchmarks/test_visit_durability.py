@@ -33,9 +33,10 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-SCRIPTS_DIR = Path(__file__).resolve().parent
-for p in (REPO_ROOT, SCRIPTS_DIR):
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+for p in (SRC_ROOT, THIS_DIR):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
 
@@ -268,16 +269,16 @@ async def main_async(args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--manifest", default=str(REPO_ROOT / "scripts" / "bench_models.json"))
+    p.add_argument("--manifest", default=str(THIS_DIR / "bench_models.json"))
     p.add_argument("--models", default=None)
-    p.add_argument("--games", default=str(REPO_ROOT / "scripts" / "bench_data" / "test_c_games.jsonl"))
+    p.add_argument("--games", default=str(THIS_DIR / "bench_data" / "test_c_games.jsonl"))
     p.add_argument("--reference-visits", type=int, default=800)
     p.add_argument("--compare-visits", default="400,200,100")
     p.add_argument("--gate-k", type=float, default=2.5)
     p.add_argument("--only-gate-passed", action="store_true",
                     help="유효성 게이트를 통과한 수만 비교 대상에 포함 (기본: 전체 포함)")
     p.add_argument("--timeout", type=float, default=240.0)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_results" / "test_c_durability.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_results" / "test_c_durability.csv"))
     args = p.parse_args()
     args.compare_visits = [int(v) for v in args.compare_visits.split(",")]
     return args

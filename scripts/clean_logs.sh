@@ -8,8 +8,8 @@ cd "$(dirname "$0")/.."
 
 targets=(
   analysis_logs
-  analysis/models/gtp_logs
-  analysis/models/analysis_logs
+  src/analysis/models/gtp_logs
+  src/analysis/models/analysis_logs
 )
 
 for dir in "${targets[@]}"; do
@@ -20,7 +20,7 @@ for dir in "${targets[@]}"; do
   fi
 done
 
-for f in scripts/bench_results/*.log scripts/output/*.log; do
+for f in tests/benchmarks/bench_results/*.log tests/benchmarks/output/*.log; do
   [ -e "$f" ] && rm -v "$f"
 done
 

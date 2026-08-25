@@ -14,9 +14,10 @@ import xgboost as xgb
 from .features import FEATURE_COLUMNS, extract_features
 
 
-# current.json에 반드시 있어야 하는 필드. 학습 파이프라인(endgame/train/train.py)이
-# --promote 시 항상 다 채워서 쓰므로, 값이 비어있다면 수동으로 잘못 만든 파일이거나
-# 손상된 것 - 조용히 기본값으로 넘어가지 말고 즉시 실패시킨다.
+# current.json에 반드시 있어야 하는 필드. 학습 파이프라인(별도 프로젝트
+# doda/endgame-judge의 train.py)이 --promote 시 항상 다 채워서 쓰므로, 값이
+# 비어있다면 수동으로 잘못 만든 파일이거나 손상된 것 - 조용히 기본값으로 넘어가지
+# 말고 즉시 실패시킨다.
 _REQUIRED_CURRENT_FIELDS = ("version", "file", "recommended_threshold")
 
 
@@ -32,7 +33,7 @@ class EndgamePredictor:
         if missing:
             raise ValueError(
                 f"{current_path}에 필수 필드가 없습니다: {missing}. "
-                f"endgame/train/train.py --promote로 생성된 파일인지 확인하세요."
+                f"doda/endgame-judge의 train.py --promote로 생성된 파일인지 확인하세요."
             )
 
         model_path = self.model_dir / current["file"]

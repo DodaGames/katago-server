@@ -26,9 +26,11 @@ from pathlib import Path
 
 import requests
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 from utils.sgf_parser import parse_sgf_game  # noqa: E402
 from utils.go_board import compute_empty_counts_before_each_move  # noqa: E402
@@ -310,10 +312,10 @@ def write_settings_file(args, settings_path):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--input", default=str(REPO_ROOT / "GameRecord.csv"))
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "output" / "review_delta.csv"))
-    p.add_argument("--settings-output", default=str(REPO_ROOT / "scripts" / "output" / "review_delta_settings.txt"))
-    p.add_argument("--failures-output", default=str(REPO_ROOT / "scripts" / "output" / "review_delta_failures.log"))
+    p.add_argument("--input", default=str(REPO_ROOT / "tests" / "data" / "GameRecord.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "output" / "review_delta.csv"))
+    p.add_argument("--settings-output", default=str(THIS_DIR / "output" / "review_delta_settings.txt"))
+    p.add_argument("--failures-output", default=str(THIS_DIR / "output" / "review_delta_failures.log"))
     p.add_argument("--base-url", default="http://127.0.0.1:8000")
     p.add_argument("--model-id", default="best")
     p.add_argument("--max-visits", type=int, default=200)

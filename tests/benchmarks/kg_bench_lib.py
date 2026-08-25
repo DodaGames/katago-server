@@ -10,9 +10,11 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 from analysis.worker import KataGoWorker  # noqa: E402
 from analysis.config import base_model_path  # noqa: E402
@@ -38,7 +40,7 @@ def load_positions(positions_path):
 
 def start_worker(model_cfg: dict) -> KataGoWorker:
     model_path = os.path.join(base_model_path, model_cfg["model_path"])
-    config_path = str(REPO_ROOT / model_cfg["config_path"])
+    config_path = str(SRC_ROOT / model_cfg["config_path"])
     return KataGoWorker(main_model_path=model_path, config_path=config_path)
 
 

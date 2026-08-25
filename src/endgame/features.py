@@ -1,7 +1,9 @@
 """KataGo analysis 결과(rootInfo/ownership/policy)에서 종국 판정 모델의 입력 피처를 추출.
 
-학습(endgame/train)과 서빙(endgame/predictor)이 반드시 이 모듈을 통해서만 피처를
-계산해야 한다 - 두 곳에서 각자 구현하면 train/serve skew가 생긴다.
+학습(별도 프로젝트 doda/endgame-judge의 features.py - 이 파일과 동기화 유지)과
+서빙(endgame/predictor)이 반드시 동일한 피처 계산 로직을 써야 한다 - 두 곳이
+어긋나면 train/serve skew가 생긴다. 이 파일을 수정하면 doda/endgame-judge/features.py에도
+동일하게 반영할 것.
 """
 
 import numpy as np

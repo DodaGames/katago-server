@@ -5,9 +5,8 @@ models/
 workspace/
 temp/
 
-# 종국 판정 모델 학습 원본 데이터(실명 포함 대국 기보)와 참고용 EDA 노트북 출력
-endgame/train/data/
-endgame/train/notebooks/
+# 실명 포함 실제 대국 로그 원본 - 벤치마크/학습 데이터 추출용, git에 올리지 않는다
+tests/data/
 
 ### Linux ###
 *~

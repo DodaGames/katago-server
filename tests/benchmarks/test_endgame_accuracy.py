@@ -27,9 +27,11 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 from kg_bench_lib import load_positions, build_payload, time_query, extract_root_info  # noqa: E402
 from analysis.worker import KataGoWorker  # noqa: E402
@@ -169,7 +171,7 @@ async def main_async(args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--positions", default=str(REPO_ROOT / "scripts" / "bench_data" / "positions.jsonl"))
+    p.add_argument("--positions", default=str(THIS_DIR / "bench_data" / "positions.jsonl"))
     p.add_argument("--sample-size", type=int, default=30)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--model", default="best", help='"best" 또는 모델 파일명')
@@ -177,7 +179,7 @@ def parse_args():
     p.add_argument("--reference-visits", type=int, default=800)
     p.add_argument("--visits", default="400,200,100,50")
     p.add_argument("--timeout", type=float, default=180.0)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_results" / "test_e_endgame.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_results" / "test_e_endgame.csv"))
     args = p.parse_args()
     args.visits = [int(v) for v in args.visits.split(",")]
     return args

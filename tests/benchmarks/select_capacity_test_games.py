@@ -24,8 +24,10 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SRC_ROOT))
 
 
 def load_positions(path):
@@ -90,12 +92,12 @@ def stratified_sample(games, sample_size, seed):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--positions", default=str(REPO_ROOT / "scripts" / "bench_data" / "positions.jsonl"))
+    p.add_argument("--positions", default=str(THIS_DIR / "bench_data" / "positions.jsonl"))
     p.add_argument("--test-a-size", type=int, default=10)
     p.add_argument("--test-c-size", type=int, default=20)
     p.add_argument("--seed", type=int, default=42)
-    p.add_argument("--test-a-output", default=str(REPO_ROOT / "scripts" / "bench_data" / "test_a_games.jsonl"))
-    p.add_argument("--test-c-output", default=str(REPO_ROOT / "scripts" / "bench_data" / "test_c_games.jsonl"))
+    p.add_argument("--test-a-output", default=str(THIS_DIR / "bench_data" / "test_a_games.jsonl"))
+    p.add_argument("--test-c-output", default=str(THIS_DIR / "bench_data" / "test_c_games.jsonl"))
     args = p.parse_args()
 
     games = load_positions(args.positions)

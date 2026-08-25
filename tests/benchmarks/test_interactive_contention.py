@@ -33,9 +33,11 @@ import sys
 import time
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+SRC_ROOT = REPO_ROOT / "src"
+THIS_DIR = Path(__file__).resolve().parent
+if str(SRC_ROOT) not in sys.path:
+    sys.path.insert(0, str(SRC_ROOT))
 
 from kg_bench_lib import (  # noqa: E402
     load_positions, build_payload, time_query, full_analyze_turns,
@@ -223,7 +225,7 @@ async def main_async(args):
 
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--positions", default=str(REPO_ROOT / "scripts" / "bench_data" / "positions.jsonl"))
+    p.add_argument("--positions", default=str(THIS_DIR / "bench_data" / "positions.jsonl"))
     p.add_argument("--concurrency", default="0,1,2,4,8")
     p.add_argument("--review-visits", type=int, default=100, help="복기 부하의 maxVisits (운영 권장치)")
     p.add_argument("--next-move-visits", type=int, default=100, help="착수(AI 대국) maxVisits")
@@ -233,7 +235,7 @@ def parse_args():
     p.add_argument("--n-requests", type=int, default=50)
     p.add_argument("--ramp-up-sec", type=float, default=2.0)
     p.add_argument("--timeout", type=float, default=180.0)
-    p.add_argument("--output", default=str(REPO_ROOT / "scripts" / "bench_results" / "test_b_contention.csv"))
+    p.add_argument("--output", default=str(THIS_DIR / "bench_results" / "test_b_contention.csv"))
     args = p.parse_args()
     args.concurrency = [int(v) for v in args.concurrency.split(",")]
     return args
