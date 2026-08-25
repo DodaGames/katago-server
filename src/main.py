@@ -166,4 +166,7 @@ def status_check():
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, access_log=False)
+    # reload=False: 프로덕션에서 실수로 `python main.py`를 직접 실행해도
+    # 자동 재시작이 켜지지 않도록 한다 (지난 OOM 사고 원인 재발 방지).
+    # 개발 중 자동 재시작이 필요하면 scripts/run_dev.sh를 사용한다.
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False, access_log=False)
