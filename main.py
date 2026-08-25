@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -15,6 +17,7 @@ from analysis.pool import (
 )
 from endgame.schemas import KatagoAnalysisResult
 from endgame.service import get_endgame_predictor
+from schemas import ApiResponse, ApiError, ApiErrorResponse, error_code_for_status
 
 app = FastAPI()
 
@@ -50,7 +53,9 @@ async def log_requests(request: Request, call_next):
 async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(
         status_code=exc.status_code,
-        content={"success": False, "error": exc.detail},
+        content=ApiErrorResponse(
+            error=ApiError(code=error_code_for_status(exc.status_code), message=str(exc.detail))
+        ).model_dump(),
     )
 
 
@@ -60,7 +65,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     error_msg = ", ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
     return JSONResponse(
         status_code=422,
-        content={"success": False, "error": error_msg},
+        content=ApiErrorResponse(
+            error=ApiError(code=error_code_for_status(422), message=error_msg)
+        ).model_dump(),
     )
 
 
@@ -68,7 +75,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={"success": False, "error": str(exc)},
+        content=ApiErrorResponse(
+            error=ApiError(code=error_code_for_status(500), message=str(exc))
+        ).model_dump(),
     )
 
 
@@ -81,7 +90,7 @@ app.add_middleware(
 )
 
 
-@app.post("/analyze/{model_id}")
+@app.post("/analyze/{model_id}", response_model=ApiResponse[Any])
 async def analyze(model_id: str, payload: dict):
     worker = get_analysis_worker(model_id)
     if not worker:
@@ -111,10 +120,10 @@ async def analyze(model_id: str, payload: dict):
             if isinstance(item, dict) and "error" in item:
                 handle_error(item["error"])
 
-    return {"success": True, "result": result}
+    return ApiResponse(result=result)
 
 
-@app.post("/check-end-game")
+@app.post("/check-end-game", response_model=ApiResponse[bool])
 async def check_end_game(analysis_result: KatagoAnalysisResult):
     """이미 확보된 KataGo 분석 결과(best_judge 등으로 직접 분석한 한 턴 분량) 하나를 받아
     종국 판정(XGBoost) 모델을 돌려 '종료 추천' 여부를 {"success": True, "result": boolean} 형식으로 반환한다.
@@ -141,19 +150,19 @@ async def check_end_game(analysis_result: KatagoAnalysisResult):
         logger.error(f"Endgame prediction failed: {e}")
         is_endgame = False
 
-    return {"success": True, "result": is_endgame}
+    return ApiResponse(result=is_endgame)
 
 
-@app.get("/health")
+@app.get("/health", response_model=ApiResponse[str])
 def health_check():
-    return {"status": "ok"}
+    return ApiResponse(result="ok")
 
 
-@app.get("/status")
+@app.get("/status", response_model=ApiResponse[dict[str, Any]])
 def status_check():
     """운영 지표 대시보드용 스냅샷: 모델별 큐 depth/대기 요청 수/요청 지연시간
     (p50/p95)/동시성 게이트 상태(대기 중 건수·대기시간)와 GPU 사용률을 반환합니다."""
-    return {"success": True, **get_pool_stats()}
+    return ApiResponse(result=get_pool_stats())
 
 
 if __name__ == "__main__":
