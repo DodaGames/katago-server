@@ -26,6 +26,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("uvicorn.error")
 
 
+def _seq_len(value) -> int:
+    """로그용 길이 계산. 클라이언트가 보낸 값이라 리스트가 아닐 수 있으므로,
+    로그를 찍다가 요청을 실패시키지 않도록 방어한다."""
+    return len(value) if isinstance(value, list) else 0
+
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
@@ -51,6 +57,11 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    # 에러 본문은 클라이언트에만 가고 서버에는 상태코드만 남던 문제를 보완한다.
+    # 504(KataGo 타임아웃)/500이 왜 났는지 로그만 보고 알 수 있어야 한다.
+    log = logger.error if exc.status_code >= 500 else logger.warning
+    log(f'HTTPException: {request.method} "{request.url.path}" -> {exc.status_code}: {exc.detail}')
+
     return JSONResponse(
         status_code=exc.status_code,
         content=ApiErrorResponse(
@@ -63,6 +74,8 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     errors = exc.errors()
     error_msg = ", ".join([f"{err['loc'][-1]}: {err['msg']}" for err in errors])
+    logger.warning(f'ValidationError: {request.method} "{request.url.path}" -> 422: {error_msg}')
+
     return JSONResponse(
         status_code=422,
         content=ApiErrorResponse(
@@ -73,10 +86,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # logger.exception으로 스택 트레이스까지 남긴다.
+    # 미처리 예외의 traceback이 통째로 유실되던 것을 막는다.
+    logger.exception(f'Unhandled exception: {request.method} "{request.url.path}"')
+
     return JSONResponse(
         status_code=500,
         content=ApiErrorResponse(
-            error=ApiError(code=error_code_for_status(500), message=str(exc))
+            error=ApiError(
+                code=error_code_for_status(500),
+                # 내부 예외 메시지(str(exc))를 클라이언트에 그대로 노출하지 않는다.
+                # 원문과 스택은 바로 위 로그에 남는다.
+                message="Internal server error",
+            )
         ).model_dump(),
     )
 
@@ -100,7 +122,17 @@ async def analyze(model_id: str, payload: dict):
     request_start = time.time()
     async with acquire_concurrency_slot(model_id):
         result = await worker.analyze(payload)
-    record_request_latency(model_id, time.time() - request_start)
+    elapsed = time.time() - request_start
+    record_request_latency(model_id, elapsed)
+
+    # 요청 특성을 함께 남긴다. 경로 로그(POST /analyze/best)만으로는
+    # 같은 모델의 요청 중 어떤 게 왜 느렸는지 사후에 구분할 수 없다.
+    logger.info(
+        f"Analyze: model={model_id} maxVisits={payload.get('maxVisits')} "
+        f"moves={_seq_len(payload.get('moves'))} "
+        f"analyzeTurns={_seq_len(payload.get('analyzeTurns'))} "
+        f"elapsed={elapsed:.3f}s"
+    )
 
     def handle_error(err_msg: str):
         err_lower = err_msg.lower()

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import sys
 import threading
@@ -15,6 +16,13 @@ from .config import (
     MAX_CONCURRENT_REQUESTS,
 )
 
+logger = logging.getLogger("uvicorn.error")
+
+# 게이트 대기가 이 값을 넘으면 로그로 남긴다. 대기 상황이 /status 폴링에만
+# 노출돼 있어, 지나간 포화 구간을 사후에 확인할 방법이 없던 것을 보완한다.
+GATE_WAIT_WARN_SECONDS = 5.0
+
+
 class ConcurrencyGate:
     """model_id별 동시 처리 요청 수를 상한(N)으로 강제하는 FIFO 대기 게이트.
 
@@ -22,8 +30,9 @@ class ConcurrencyGate:
     상한을 넘는 요청은 먼저 온 순서대로 슬롯을 얻는다(복기끼리의 큐잉).
     """
 
-    def __init__(self, limit: int):
+    def __init__(self, limit: int, model_id: str = ""):
         self.limit = limit
+        self.model_id = model_id  # 로그 식별용
         self._semaphore = asyncio.Semaphore(limit)
         self._waiting = 0
         self._in_flight = 0
@@ -39,7 +48,14 @@ class ConcurrencyGate:
             with self._lock:
                 self._waiting -= 1
                 self._in_flight += 1
-            self.wait_latency.record(time.perf_counter() - t0)
+                waiting_now = self._waiting
+            wait_seconds = time.perf_counter() - t0
+            self.wait_latency.record(wait_seconds)
+            if wait_seconds >= GATE_WAIT_WARN_SECONDS:
+                logger.warning(
+                    f"[ConcurrencyGate] model={self.model_id} 슬롯 대기 {wait_seconds:.1f}s "
+                    f"(limit={self.limit}, 뒤에 대기 중={waiting_now})"
+                )
             try:
                 yield
             finally:
@@ -96,6 +112,7 @@ for model_id, model_info in SERVING_MODELS.items():
             config_path=config_path,
             is_human=is_human,
             human_model_path=human_model_full_path,
+            model_id=model_id,
         )
         for _ in range(NUM_WORKERS_PER_MODEL)
     ]
@@ -106,7 +123,7 @@ _pool_lock = threading.Lock()
 
 # model_id별 동시성 게이트(설정된 모델만) + 요청 지연시간 트래커(전 모델)
 _concurrency_gates = {
-    model_id: ConcurrencyGate(limit)
+    model_id: ConcurrencyGate(limit, model_id=model_id)
     for model_id, limit in MAX_CONCURRENT_REQUESTS.items()
     if limit and model_id in analysis_worker_map
 }

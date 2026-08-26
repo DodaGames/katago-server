@@ -41,5 +41,11 @@ OOMPolicy=stop
 StandardOutput=journal
 StandardError=journal
 
+# Python stdout은 파이프(journald)에 연결되면 8KB 블록 버퍼링된다.
+# 그대로 두면 worker.py/pool.py의 print() 출력(`[KataGo Log]`, 엔진 기동 로그,
+# 워커 에러)이 버퍼가 찰 때까지 journald에 도달하지 않고, OOM으로 SIGKILL되면
+# 버퍼 내용이 통째로 유실된다 — 원인 규명이 가장 필요한 순간에.
+Environment=PYTHONUNBUFFERED=1
+
 [Install]
 WantedBy=multi-user.target

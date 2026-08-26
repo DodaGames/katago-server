@@ -2,17 +2,29 @@ import subprocess
 import threading
 import queue
 import json
+import logging
+import signal
 import uuid
 import asyncio
 
 from .config import katago_executable_path
 from .payload_analyzer import get_expected_response_count
 
+logger = logging.getLogger("uvicorn.error")
+
 
 class KataGoWorker:
     def __init__(
-        self, main_model_path, config_path, is_human=False, human_model_path=None
+        self,
+        main_model_path,
+        config_path,
+        is_human=False,
+        human_model_path=None,
+        model_id=None,
     ):
+        # 로그에서 어느 모델의 워커인지 식별하기 위한 라벨(로깅 전용).
+        self.model_id = model_id or main_model_path
+
         cmd = [
             katago_executable_path,
             "analysis",
@@ -42,14 +54,46 @@ class KataGoWorker:
         self.futures = {}
         self.futures_lock = threading.Lock()
 
+        # 프로세스 종료를 stdout/stderr 리더 중 한쪽만 기록하도록 하는 가드
+        self._exit_logged = threading.Event()
+
         # writer, reader thread 분리
         threading.Thread(target=self._writer_loop, daemon=True).start()
         threading.Thread(target=self._reader_loop, daemon=True).start()
         threading.Thread(target=self._log_stderr, daemon=True).start()
 
+    def _handle_process_exit(self, source: str):
+        """KataGo 프로세스가 죽으면 stdout/stderr 리더가 EOF로 조용히 끝난다.
+        아무것도 남기지 않으면 이후 모든 요청이 타임아웃으로만 드러나므로
+        (원인은 알 수 없는 채로), 먼저 EOF에 도달한 리더가 한 번만 기록한다.
+        """
+        if self._exit_logged.is_set():
+            return
+        self._exit_logged.set()
+
+        try:
+            returncode = self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            returncode = None
+
+        # SIGTERM(-15)은 `systemctl stop`이 cgroup 전체에 보내는 정상 종료 경로다.
+        # 이걸 에러로 찍으면 정상 재시작마다 거짓 경보가 남는다.
+        if returncode == -signal.SIGTERM:
+            logger.info(
+                f"[KataGo Worker] model={self.model_id} 프로세스 정상 종료 (source={source})"
+            )
+            return
+
+        logger.error(
+            f"[KataGo Worker] model={self.model_id} 프로세스가 예기치 않게 종료됨 "
+            f"(source={source}, returncode={returncode}). "
+            f"이 워커로 가는 요청은 이후 전부 타임아웃된다 — 서비스 재시작 필요."
+        )
+
     def _log_stderr(self):
         for line in iter(self.process.stderr.readline, ""):
             print("[KataGo Log]", line.strip())
+        self._handle_process_exit("stderr")
 
     def _writer_loop(self):
         while True:
@@ -85,6 +129,8 @@ class KataGoWorker:
 
             except Exception as e:
                 print(f"[KataGo Worker Error] Failed to parse stdout: {e}, line: {result_line}")
+
+        self._handle_process_exit("stdout")
 
     async def analyze(self, payload: dict, timeout: float = 100.0):
         """payload를 분석하고 결과를 반환 (timeout 초과 시 반환)"""
