@@ -36,8 +36,9 @@ katago_executable_path = get_env_required("KATAGO_EXECUTABLE_PATH")
 # 서빙할 모델 목록
 SERVING_MODELS = {
     "yoojunho": "kata1-b6c96-s1248000-d550347.txt.gz",
-    "junho": "kata1-b6c96-s938496-d1208807.txt.gz",
     "yongho": "kata1-b6c96-s1995008-d1329786.txt.gz",
+    "jaeho": "kata1-b6c96-s5214720-d1690538.txt.gz",
+    "mooyaho": "kata1-b6c96-s8080640-d1961030.txt.gz",
     # "jaeho": "kata1-b6c96-s5214720-d1690538.txt.gz",
     # "gunho": "kata1-b6c96-s6127360-d1754797.txt.gz",
     # "mooyaho": "kata1-b6c96-s8080640-d1961030.txt.gz",
