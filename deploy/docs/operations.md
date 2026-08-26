@@ -3,6 +3,9 @@
 2026-08-25부터 프로덕션 서버는 tmux 수동 실행 대신 systemd(`katago-server.service`)로 관리한다.
 tmux + 수동 재시작 방식은 auto-reload와 수동 재시작이 겹쳐 발생한 OOM 사고(2026-08) 이후 폐기했다.
 
+모니터링·알림(워치독, 데드맨 스위치, 알림 룰)은 별도 문서로 분리했다:
+[src/monitoring/docs/monitoring.md](../../src/monitoring/docs/monitoring.md).
+
 ## 서비스 관리
 
 ```
@@ -53,7 +56,8 @@ KataGo(TensorRT 백엔드)는 `libnvinfer.so.10` 등을 `~/TensorRT-10.9.0.34/li
 이 경로는 인터랙티브 zsh 세션(`~/.zshrc`)에서만 설정되어 있고, systemd는 셸 rc 파일을 거치지 않는다.
 그래서 `scripts/run_prod.sh`가 `exec uvicorn ...` 하기 전에 **직접** `LD_LIBRARY_PATH`를 export하도록 고쳐놨다.
 
-**증상**: `/health`는 200을 반환하는데(문자열만 반환, 엔진 상태 미확인) `journalctl`에 아래처럼 각 모델마다 뜨면 이 문제다.
+**증상**: KataGo 프로세스가 기동 직후 죽으므로 `/health`가 503(`dead`에 model_id 나열)을 반환하고,
+`journalctl`에 아래처럼 각 모델마다 뜬다.
 
 ```
 [KataGo Log] .../usr/bin/katago: error while loading shared libraries: libnvinfer.so.10: cannot open shared object file: No such file or directory
@@ -145,6 +149,8 @@ KataGo는 `logDir`이 없으면 기동하지 않으므로 디렉터리는 유지
 
 ## 트러블슈팅 체크리스트
 
+0. `curl -s http://127.0.0.1:8000/health | jq` — 워커가 하나라도 죽었으면 503과 함께 `error.details.dead`에 model_id가 나온다.
+   `journalctl -u katago-watchdog -n 20`으로 워치독이 무엇을 보고 있었는지 함께 확인
 1. `systemctl status katago-server` — Active 상태, 최근 재시작 여부(반복 재시작 중이면 크래시 루프 의심)
 2. `journalctl -u katago-server -p warning -n 50` — 경고/에러만. 워커 사망·504·미처리 예외가 여기 다 잡힌다
 3. `journalctl -u katago-server -n 100` — 전체 맥락, `libnvinfer` 관련 여부
