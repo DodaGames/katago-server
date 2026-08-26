@@ -71,14 +71,20 @@ def evaluate(
     return events
 
 
+def format_event(event: Event) -> tuple[str, str]:
+    """이벤트를 알림 제목/본문으로 만든다.
+
+    셀프테스트(monitoring.selftest)가 실제와 똑같은 형식을 재현하려고 같이 쓴다.
+    여기서 갈라지면 "테스트는 잘 보이는데 진짜 알림은 다르게 온다"가 된다.
+    """
+    if event.kind == "fire":
+        return event.rule.title, f"{event.message}\n\n조치: {event.rule.action}"
+    return f"{event.rule.title} 해소", "조건이 더 이상 참이 아닙니다."
+
+
 def dispatch(events: list[Event], cfg: Config, dry_run: bool) -> None:
     for event in events:
-        if event.kind == "fire":
-            title = event.rule.title
-            body = f"{event.message}\n\n조치: {event.rule.action}"
-        else:
-            title = f"{event.rule.title} 해소"
-            body = "조건이 더 이상 참이 아닙니다."
+        title, body = format_event(event)
 
         if dry_run:
             _log(f"[dry-run] slack {event.rule.severity} {title} | {event.message}")

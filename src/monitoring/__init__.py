@@ -11,5 +11,8 @@
 워치독은 표준 라이브러리만 쓴다. 감시 대상과 같은 venv에 의존하면
 그 venv가 깨졌을 때 감시도 같이 죽기 때문이다.
 
+알림이 실제로 도착하는지 확인:
+    python3 -m monitoring.selftest
+
 운영 문서: src/monitoring/docs/monitoring.md
 """

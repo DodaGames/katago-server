@@ -166,11 +166,18 @@ PYTHONPATH=src /usr/bin/python3 -m monitoring.watchdog --dry-run
 ```
 
 Slack 발송이 실제로 되는지는 웹훅을 직접 찔러보는 게 빠르다.
+**`.env`는 systemd와 파이썬이 읽는 파일이지 셸이 읽는 파일이 아니다.** 손으로 확인할
+때는 셸에 먼저 로드해야 한다.
 
 ```bash
+set -a; . ./.env; set +a                       # .env를 현재 셸로 로드
 curl -X POST -H 'Content-Type: application/json' \
   -d '{"text":"watchdog 연결 테스트"}' "$SLACK_WEBHOOK_URL"   # 응답이 ok면 성공
 ```
+
+`curl: (3) URL rejected: Malformed input to a URL function`이 뜨면 웹훅 URL이 잘못된 게
+아니라 **변수가 비어 있는 것이다**(로드를 건너뛴 경우). `echo ${#SLACK_WEBHOOK_URL}`로
+길이가 0인지 먼저 본다.
 
 웹훅 URL이 틀리면 워치독 로그에 이유가 그대로 찍힌다
 (`slack P1 worker_dead fire -> HTTP 404 (no_service)`).
@@ -185,6 +192,42 @@ curl -X POST -H 'Content-Type: application/json' \
   이게 P1이 방해금지를 뚫는 유일한 경로다.
 - **폰**: Slack 모바일 앱에서 같은 채널의 알림을 켠다. 노트북을 닫아두는 시간대와
   집 회선이 끊긴 상황을 이쪽이 담당한다. 이 둘 중 하나라도 빠지면 P1 등급의 의미가 없어진다.
+
+### 6. 셀프테스트
+
+위 curl은 평문 `text`만 보내므로 **연결만** 확인된다. 알림이 실제로 어떤 모양으로 오고
+내 눈까지 도달하는지는 셀프테스트로 본다. `.env`를 스스로 읽으므로 `set -a`가 필요 없다.
+
+```bash
+PYTHONPATH=src /usr/bin/python3 -m monitoring.selftest
+```
+
+세 등급의 샘플 알림을 실제 알림과 **같은 코드 경로**(`watchdog.format_event`)로 보낸다.
+제목에 `[셀프테스트]`가 붙는 것만 다르다.
+
+```
+[Slack 발송]
+  ✓ P1 worker_dead      -> HTTP 200
+  ✓ P2 timeout_rate     -> HTTP 200
+  ✓ P3 disk_free        -> HTTP 200
+```
+
+발송 성공은 **도달을 뜻하지 않는다.** 채널 알림 설정이나 집중 모드에 막히면 `HTTP 200`을
+받고도 사람에게는 아무것도 오지 않는다. 그래서 스크립트가 마지막에 눈으로 확인할 항목을
+같이 출력한다 — 색 막대 구분, 맥북 데스크탑 알림, 폰 푸시.
+
+| 옵션 | 용도 |
+| --- | --- |
+| `--check` | 발송 없이 설정만 점검(웹훅 URL 유무·형식) |
+| `--severity P1` | 한 등급만 보낸다 |
+| `--rule worker_dead` | 특정 룰의 제목·조치 문구 그대로 보낸다 |
+| `--deadman` | Healthchecks.io에 성공 ping을 보내 연결 확인 |
+| `--deadman-fail` | 체크를 실제로 down 시켰다가 복구 — 저쪽 Slack 연동까지 확인 |
+
+`--deadman-fail`은 Healthchecks가 보내는 **진짜 down/up 알림을 울린다.** 이게 유일하게
+그 경로를 끝까지 검증하는 방법이라 넣어뒀지만, 설치 직후 한 번이면 충분하다.
+워치독 웹훅과 Healthchecks 연동은 완전히 별개 경로라, 앞의 3건이 잘 왔다고
+이쪽이 살아있다는 보장은 없다.
 
 ## 알림 룰
 
