@@ -1,0 +1,21 @@
+[Unit]
+Description=Run KataGo Server Watchdog every minute
+
+[Timer]
+# 부팅 직후에는 KataGo 엔진이 아직 초기화 중이라 /health가 응답하지 않는다.
+# 그 구간에 점검하면 정상 기동을 장애로 오인하므로 여유를 둔다.
+# 엔진 기동이 이보다 오래 걸리면 이 값을 늘릴 것.
+OnBootSec=3min
+
+# 점검 주기. 알림 룰의 지속시간(for_seconds)은 이 주기의 배수로 해석된다
+# (예: 300초 = 5틱 연속 참일 때 발화).
+OnUnitActiveSec=1min
+
+# systemd 기본 정확도는 1분이라 주기가 들쭉날쭉해진다. 지속시간 판정이
+# 틱 수에 의존하므로 촘촘하게 맞춘다.
+AccuracySec=5s
+
+Unit=katago-watchdog.service
+
+[Install]
+WantedBy=timers.target
