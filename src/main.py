@@ -1,6 +1,6 @@
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,14 +9,18 @@ import uvicorn
 import time
 import logging
 
+from analysis.metrics import OutcomeTracker
 from analysis.pool import (
     get_analysis_worker,
     get_pool_stats,
     acquire_concurrency_slot,
     record_request_latency,
+    record_request_outcome,
 )
 from endgame.schemas import KatagoAnalysisResult
 from endgame.service import get_endgame_predictor
+from monitoring.auth import require_monitoring_access
+from monitoring.health import check_health
 from schemas import ApiResponse, ApiError, ApiErrorResponse, error_code_for_status
 
 app = FastAPI()
@@ -66,7 +70,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         status_code=exc.status_code,
         content=ApiErrorResponse(
             error=ApiError(code=error_code_for_status(exc.status_code), message=str(exc.detail))
-        ).model_dump(),
+        ).model_dump(exclude_none=True),
     )
 
 
@@ -80,7 +84,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         status_code=422,
         content=ApiErrorResponse(
             error=ApiError(code=error_code_for_status(422), message=error_msg)
-        ).model_dump(),
+        ).model_dump(exclude_none=True),
     )
 
 
@@ -99,7 +103,7 @@ async def global_exception_handler(request: Request, exc: Exception):
                 # 원문과 스택은 바로 위 로그에 남는다.
                 message="Internal server error",
             )
-        ).model_dump(),
+        ).model_dump(exclude_none=True),
     )
 
 
@@ -137,11 +141,16 @@ async def analyze(model_id: str, payload: dict):
     def handle_error(err_msg: str):
         err_lower = err_msg.lower()
         if "timeout" in err_lower:
-            raise HTTPException(status_code=504, detail=err_msg)
+            status_code, outcome = 504, OutcomeTracker.TIMEOUT
         elif "internal process error" in err_lower:
-            raise HTTPException(status_code=500, detail=err_msg)
+            status_code, outcome = 500, OutcomeTracker.ERROR
         else:
-            raise HTTPException(status_code=400, detail=err_msg)
+            status_code, outcome = 400, OutcomeTracker.ERROR
+
+        # 알림 룰이 모델별 타임아웃 비율로 "엔진은 살아있는데 응답만 못 하는" 상태를
+        # 판별하므로, 실패 요청도 결과 분포에 남겨야 한다.
+        record_request_outcome(model_id, outcome)
+        raise HTTPException(status_code=status_code, detail=err_msg)
 
     # 에러 여부 확인 및 상태 코드 응답 처리
     if isinstance(result, dict) and "error" in result:
@@ -152,6 +161,7 @@ async def analyze(model_id: str, payload: dict):
             if isinstance(item, dict) and "error" in item:
                 handle_error(item["error"])
 
+    record_request_outcome(model_id, OutcomeTracker.OK)
     return ApiResponse(result=result)
 
 
@@ -185,15 +195,44 @@ async def check_end_game(analysis_result: KatagoAnalysisResult):
     return ApiResponse(result=is_endgame)
 
 
-@app.get("/health", response_model=ApiResponse[str])
+@app.get(
+    "/health",
+    response_model=ApiResponse[dict[str, Any]],
+    responses={503: {"model": ApiErrorResponse}},
+    dependencies=[Depends(require_monitoring_access)],
+)
 def health_check():
-    return ApiResponse(result="ok")
+    """KataGo 워커 생사를 반영한 실질 헬스체크.
+
+    워커가 전부 살아있으면 200, 하나라도 죽었으면 503을 반환하며 죽은 model_id를
+    `error.details.dead`에 담는다. 워치독이 이 응답으로 데드맨 스위치를 판정하고,
+    실패 시 모델명을 알림 본문에 그대로 실어 보낸다.
+    """
+    report = check_health()
+    if report.healthy:
+        return ApiResponse(result=report.payload())
+
+    return JSONResponse(
+        status_code=503,
+        content=ApiErrorResponse(
+            error=ApiError(
+                code=error_code_for_status(503),
+                message=report.message(),
+                details=report.payload(),
+            )
+        ).model_dump(exclude_none=True),
+    )
 
 
-@app.get("/status", response_model=ApiResponse[dict[str, Any]])
+@app.get(
+    "/status",
+    response_model=ApiResponse[dict[str, Any]],
+    dependencies=[Depends(require_monitoring_access)],
+)
 def status_check():
     """운영 지표 대시보드용 스냅샷: 모델별 큐 depth/대기 요청 수/요청 지연시간
-    (p50/p95)/동시성 게이트 상태(대기 중 건수·대기시간)와 GPU 사용률을 반환합니다."""
+    (p50/p95)/요청 결과 분포/동시성 게이트 상태(대기 중 건수·대기시간)와
+    GPU 사용률·온도를 반환합니다. 지연시간과 결과 분포는 최근 5분 기준입니다."""
     return ApiResponse(result=get_pool_stats())
 
 

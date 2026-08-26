@@ -163,6 +163,15 @@ class KataGoWorker:
                     del self.futures[internal_id]
             return {"error": "KataGo response timeout"}
 
+    def is_alive(self) -> bool:
+        """KataGo 프로세스 생존 여부.
+
+        주의: "프로세스가 살아있다"이지 "응답할 수 있다"가 아니다. GPU가 행에 걸려
+        프로세스는 떠 있는데 응답만 못 하는 상태는 이 값으로 잡히지 않는다
+        (그 경우는 모델별 타임아웃 비율로 판단한다 — monitoring/rules.py).
+        """
+        return self.process.poll() is None
+
     def get_stats(self) -> dict:
         """모니터링용 큐 depth 및 대기 중인 요청 수 스냅샷"""
         with self.futures_lock:
@@ -171,5 +180,5 @@ class KataGoWorker:
         return {
             "queue_size": self.write_queue.qsize(),
             "pending_requests": pending_requests,
-            "process_alive": self.process.poll() is None,
+            "process_alive": self.is_alive(),
         }

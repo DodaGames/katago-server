@@ -5,7 +5,7 @@
 """
 
 from http import HTTPStatus
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from pydantic import BaseModel
 
@@ -20,6 +20,10 @@ class ApiResponse(BaseModel, Generic[T]):
 class ApiError(BaseModel):
     code: str
     message: str
+    # 기계가 읽어야 하는 부가 정보(예: /health의 다운된 model_id 목록).
+    # message 문자열을 파싱하게 만들지 않기 위한 필드다.
+    # 값이 없을 때는 응답에 나타나지 않는다(핸들러가 exclude_none으로 직렬화).
+    details: dict[str, Any] | None = None
 
 
 class ApiErrorResponse(BaseModel):

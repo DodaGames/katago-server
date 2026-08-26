@@ -7,7 +7,7 @@ import time
 from contextlib import asynccontextmanager, nullcontext
 
 from .worker import KataGoWorker
-from .metrics import LatencyTracker, get_gpu_stats
+from .metrics import LatencyTracker, OutcomeTracker, get_gpu_stats
 from .config import (
     SERVING_MODELS,
     base_model_path,
@@ -128,6 +128,7 @@ _concurrency_gates = {
     if limit and model_id in analysis_worker_map
 }
 _request_latency = {model_id: LatencyTracker() for model_id in analysis_worker_map}
+_request_outcomes = {model_id: OutcomeTracker() for model_id in analysis_worker_map}
 
 
 def get_analysis_worker(model_id: str):
@@ -157,13 +158,37 @@ def record_request_latency(model_id: str, seconds: float):
         tracker.record(seconds)
 
 
+def record_request_outcome(model_id: str, outcome: str):
+    """요청 결과(OutcomeTracker.OK/TIMEOUT/ERROR)를 기록한다."""
+    tracker = _request_outcomes.get(model_id)
+    if tracker:
+        tracker.record(outcome)
+
+
+def get_worker_liveness() -> dict[str, dict]:
+    """model_id별 KataGo 워커 생사 요약. /health와 워치독 알림이 사용한다.
+
+    워커가 여러 개인 모델(NUM_WORKERS_PER_MODEL > 1)에서 일부만 죽은 경우도
+    그만큼 처리 용량이 사라진 것이므로 alive < total로 드러난다.
+    """
+    return {
+        model_id: {
+            "alive": sum(1 for worker in workers if worker.is_alive()),
+            "total": len(workers),
+        }
+        for model_id, workers in analysis_worker_map.items()
+    }
+
+
 def get_pool_stats() -> dict:
-    """모델별 워커 큐 depth, 요청 지연시간(p50/p95), 동시성 게이트 상태, GPU 사용률 스냅샷."""
+    """모델별 워커 큐 depth, 요청 지연시간(p50/p95), 요청 결과 분포,
+    동시성 게이트 상태, GPU 사용률 스냅샷."""
     stats = {}
     for model_id, workers in analysis_worker_map.items():
         entry = {
             "workers": [worker.get_stats() for worker in workers],
             "latency": _request_latency[model_id].percentiles(),
+            "outcomes": _request_outcomes[model_id].counts(),
         }
         gate = _concurrency_gates.get(model_id)
         if gate:
